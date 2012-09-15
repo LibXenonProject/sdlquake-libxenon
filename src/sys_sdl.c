@@ -22,22 +22,26 @@
 #endif
 
 #include <xetypes.h>
+#include <elf/elf.h>
 #include <xenos/xe.h>
 #include <xenos/xenos.h>
 #include <xenos/edram.h>
 #include <xenos/xenos.h>
 #include <usb/usbmain.h>
 #include <console/console.h>
+#include <diskio/ata.h>
 #include <xenon_smc/xenon_smc.h>
 #include <xenon_soc/xenon_power.h>
+#include <xenon_sound/sound.h>
 
 #include "quakedef.h"
+#include "mount.h"
 
 qboolean			isDedicated;
 
 int noconinput = 0;
 
-char *basedir = "uda:";
+char *static_basedir = "uda0:";
 char *cachedir = "";
 
 cvar_t  sys_linerefresh = {"sys_linerefresh","0"};// set for entity display
@@ -391,15 +395,26 @@ int main (int c, char **v)
         xenon_sound_init();
     	//console_init();
     	usb_init();
-    	usb_do_poll();        
+    	usb_do_poll();
+    	xenon_ata_init();
+    	xenon_atapi_init();
+    	mount_all_devices();
+		findDevices();    
 	moncontrol(0);
 
 //	signal(SIGFPE, floating_point_exception_handler);
 	signal(SIGFPE, SIG_IGN);
 
+		if(c != 0 && v[0]){
+			char *tmp = argv_GetFilepath(v[0]);
+			strcpy(parms.basedir,tmp);
+		} else {
+			strcpy(parms.basedir,static_basedir);
+		}
+			
+
 	parms.memsize = 32*1024*1024;
 	parms.membase = malloc (parms.memsize);
-	parms.basedir = basedir;
 	parms.cachedir = cachedir;
 
         c = 0;
